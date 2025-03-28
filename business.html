@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Tycoon RPG</title>
+    <style>
+        body {
+            font-family: Verdana, sans-serif;
+            text-align: center;
+            background: linear-gradient(to bottom, #f5f5f5, #dcdcdc);
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            font-size: 36px;
+            margin-top: 20px;
+            color: #333;
+        }
+        p {
+            font-size: 18px;
+            color: #555;
+        }
+        .board {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .property {
+            width: 120px;
+            height: 120px;
+            border: 1px solid #ccc;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-direction: column;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .property:hover {
+            transform: scale(1.1);
+            background-color: #f0f0f0;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .player-info {
+            margin-top: 20px;
+            font-size: 18px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            animation: levelUpAnimation 2s ease-out;
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Animations for Level Up */
+        @keyframes levelUpAnimation {
+            0% { transform: scale(1); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        /* Animation for Property Purchase */
+        @keyframes propertyPurchase {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 600px) {
+            .board {
+                flex-direction: column;
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .modal .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .modal .close:hover,
+        .modal .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Business Tycoon RPG</h1>
+    <p>Invest, compete, expand, and become the ultimate market leader!</p>
+    <div class="board" id="board"></div>
+    <div class="player-info" id="player-info">Balance: £1000 | Level: 1 | XP: 0</div>
+    <div class="button-container">
+        <button onclick="nextRound()">Next Round</button>
+        <button onclick="hostileTakeover()">Hostile Takeover</button>
+    </div>
+
+    <!-- The Modal -->
+    <div id="gameModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <p id="modalMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        let playerBalance = 1000;
+        let playerXP = 0;
+        let playerLevel = 1;
+        let round = 1;
+        let rivalBalance = 1000;
+        let properties = [
+            { name: "Tech Startup", price: 200, revenue: 50, owner: null, expansionLevel: 0 },
+            { name: "Retail Store", price: 150, revenue: 40, owner: null, expansionLevel: 0 },
+            { name: "Fast Food Chain", price: 180, revenue: 45, owner: null, expansionLevel: 0 },
+            { name: "Gaming Studio", price: 250, revenue: 60, owner: null, expansionLevel: 0 },
+            { name: "Biotech Lab", price: 300, revenue: 70, owner: null, expansionLevel: 0 },
+            { name: "Real Estate", price: 350, revenue: 80, owner: null, expansionLevel: 0 },
+            { name: "Manufacturing Plant", price: 400, revenue: 90, owner: null, expansionLevel: 0 },
+            { name: "Logistics Company", price: 250, revenue: 60, owner: null, expansionLevel: 0 }
+        ];
+        let challenges = [
+            "Market Crash: Lose 10% of your balance!",
+            "Tech Boom: All businesses generate 20% extra revenue!",
+            "Tax Increase: Lose £100 in fees!",
+            "Economic Recession: All revenues decrease by 15%",
+            "New Trade Partner: Earn an extra £50 this round!"
+        ];
+
+        function updateUI() {
+            document.getElementById("player-info").innerText = `Balance: £${playerBalance} | Level: ${playerLevel} | XP: ${playerXP} | Round: ${round}`;
+            let board = document.getElementById("board");
+            board.innerHTML = "";
+            properties.forEach((prop, index) => {
+                let div = document.createElement("div");
+                div.className = "property";
+                div.innerText = `${prop.name}\n£${prop.price}\nRevenue: £${prop.revenue}\nExpansions: ${prop.expansionLevel}\nOwned: ${prop.owner ? prop.owner : "None"}`;
+                div.style.backgroundColor = prop.owner === "Player" ? "lightgreen" : prop.owner === "Rival" ? "lightcoral" : "white";
+                div.style.animation = prop.owner === "Player" || prop.owner === "Rival" ? "propertyPurchase 0.5s ease-out" : "";
+                div.onclick = () => (prop.owner === "Player" ? expandBusiness(index) : buyProperty(index));
+                board.appendChild(div);
+            });
+        }
+
+        function buyProperty(index) {
+            let prop = properties[index];
+            if (prop.owner) {
+                showModal("This business is already owned!");
+                return;
+            }
+            if (playerBalance >= prop.price) {
+                playerBalance -= prop.price;
+                prop.owner = "Player";
+                playerXP += 10;
+                levelUp();
+                showModal(`You acquired ${prop.name}! It generates £${prop.revenue} per round.`);
+            } else {
+                showModal("Not enough money to invest!");
+            }
+            updateUI();
+        }
+
+        function expandBusiness(index) {
+            let prop = properties[index];
+            let expansionCost = (prop.expansionLevel + 1) * 100;
+            if (playerBalance >= expansionCost) {
+                playerBalance -= expansionCost;
+                prop.revenue += 20;
+                prop.expansionLevel++;
+                showModal(`You expanded ${prop.name}! Revenue increased to £${prop.revenue}.`);
+            } else {
+                showModal("Not enough money to expand!");
+            }
+            updateUI();
+        }
+
+        function rivalTurn() {
+            let availableProperties = properties.filter(p => !p.owner);
+            if (availableProperties.length > 0 && rivalBalance >= availableProperties[0].price) {
+                let rivalChoice = availableProperties[Math.floor(Math.random() * availableProperties.length)];
+                rivalChoice.owner = "Rival";
+                rivalBalance -= rivalChoice.price;
+                showModal(`Your rival acquired ${rivalChoice.name}!`);
+            }
+        }
+
+        function levelUp() {
+            if (playerXP >= playerLevel * 50) {
+                playerXP = 0;
+                playerLevel++;
+                showModal(`Level up! You are now Level ${playerLevel}!`);
+            }
+        }
+
+        function nextRound() {
+            let totalRevenue = properties.filter(p => p.owner === "Player").reduce((sum, p) => sum + p.revenue, 0);
+            playerBalance += totalRevenue;
+            round++;
+            let challengeIndex = Math.floor(Math.random() * challenges.length);
+            let challenge = challenges[challengeIndex];
+            showModal(`Round ${round}: ${challenge}`);
+            
+            if (challenge.includes("Lose 10%")) {
+                playerBalance -= playerBalance * 0.1;
+            }
+            if (challenge.includes("Economic Recession")) {
+                properties.forEach(p => p.revenue *= 0.85); // Decrease revenue by 15% for all businesses
+            }
+
+            rivalTurn();
+            updateUI();
+        }
+
+        function showModal(message) {
+            document.getElementById("modalMessage").innerText = message;
+            document.getElementById("gameModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("gameModal").style.display = "none";
+        }
+
+        function hostileTakeover() {
+            let takeoverCost = 500;
+            if (playerBalance >= takeoverCost) {
+                properties.forEach(p => {
+                    if (p.owner === "Rival") {
+                        p.owner = "Player";
+                    }
+                });
+                playerBalance -= takeoverCost;
+                showModal("You successfully executed a hostile takeover and acquired all of your rival's businesses!");
+            } else {
+                showModal("Not enough money for a hostile takeover!");
+            }
+            updateUI();
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
