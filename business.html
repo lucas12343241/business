@@ -70,11 +70,11 @@
         let gameWon = false;
 
         let properties = [
-            { name: "Tech Startup", price: 200, revenue: 50, owner: null, expansionLevel: 0 },
-            { name: "Retail Store", price: 150, revenue: 40, owner: null, expansionLevel: 0 },
-            { name: "Fast Food Chain", price: 180, revenue: 45, owner: null, expansionLevel: 0 },
-            { name: "Gaming Studio", price: 250, revenue: 60, owner: null, expansionLevel: 0 },
-            { name: "Biotech Lab", price: 300, revenue: 70, owner: null, expansionLevel: 0 }
+            { name: "Tech Startup", price: 200, revenue: 50, owner: null, expansionLevel: 0, bonusMultiplier: 1 },
+            { name: "Retail Store", price: 150, revenue: 40, owner: null, expansionLevel: 0, bonusMultiplier: 1 },
+            { name: "Fast Food Chain", price: 180, revenue: 45, owner: null, expansionLevel: 0, bonusMultiplier: 1 },
+            { name: "Gaming Studio", price: 250, revenue: 60, owner: null, expansionLevel: 0, bonusMultiplier: 1 },
+            { name: "Biotech Lab", price: 300, revenue: 70, owner: null, expansionLevel: 0, bonusMultiplier: 1 }
         ];
 
         let challenges = [
@@ -99,7 +99,7 @@
             properties.forEach((prop, index) => {
                 let div = document.createElement("div");
                 div.className = "property";
-                div.innerText = `${prop.name}\n£${prop.price}\nRevenue: £${Math.floor(prop.revenue)}\nExpansions: ${prop.expansionLevel}\nOwned: ${prop.owner ? prop.owner : "None"}`;
+                div.innerText = `${prop.name}\n£${prop.price}\nRevenue: £${Math.floor(prop.revenue * prop.bonusMultiplier)}\nExpansions: ${prop.expansionLevel}\nOwned: ${prop.owner ? prop.owner : "None"}`;
                 div.style.backgroundColor = prop.owner === "Player" ? "lightgreen" : prop.owner === "Rival" ? "lightcoral" : "white";
                 div.onclick = () => (prop.owner === "Player" ? expandBusiness(index) : buyProperty(index));
                 board.appendChild(div);
@@ -183,21 +183,21 @@
 
         function nextRound() {
             if (gameWon) return;
-            let totalRevenue = properties.filter(p => p.owner === "Player").reduce((sum, p) => sum + p.revenue, 0);
+            properties.forEach(p => { if (p.owner === "Player") p.bonusMultiplier = 1; });
+            let totalRevenue = properties.filter(p => p.owner === "Player").reduce((sum, p) => sum + (p.revenue * p.bonusMultiplier), 0);
             playerBalance += totalRevenue;
             round++;
-            let challengeIndex = Math.floor(Math.random() * challenges.length);
-            let challenge = challenges[challengeIndex];
+            let challenge = challenges[Math.floor(Math.random() * challenges.length)];
             notify(`Round ${round}: ${challenge}`);
 
             if (challenge.includes("Lose 10%")) {
                 playerBalance *= 0.9;
             } else if (challenge.includes("20% extra")) {
-                properties.forEach(p => p.owner === "Player" ? p.revenue *= 1.2 : null);
+                properties.forEach(p => { if (p.owner === "Player") p.bonusMultiplier = 1.2; });
             } else if (challenge.includes("Lose £100")) {
                 playerBalance -= 100;
             } else if (challenge.includes("decrease by 15%")) {
-                properties.forEach(p => p.owner === "Player" ? p.revenue *= 0.85 : null);
+                properties.forEach(p => { if (p.owner === "Player") p.bonusMultiplier = 0.85; });
             } else if (challenge.includes("extra £50")) {
                 playerBalance += 50;
             }
