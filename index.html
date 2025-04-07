@@ -32,10 +32,12 @@
         .button-container {
             margin-top: 20px;
         }
-        #game-message {
+        .message-box {
             margin-top: 20px;
-            font-size: 1.2em;
-            color: green;
+            padding: 10px;
+            border: 1px solid #444;
+            background-color: #eef;
+            display: none;
         }
     </style>
 </head>
@@ -45,9 +47,9 @@
     <div class="board" id="board"></div>
     <div class="player-info" id="player-info">Balance: £1000 | Level: 1 | XP: 0</div>
     <div class="button-container">
-        <button id="next-round-button" onclick="nextRound()">Next Round</button>
+        <button onclick="nextRound()" id="next-round-btn">Next Round</button>
     </div>
-    <div id="game-message"></div>
+    <div class="message-box" id="message-box"></div>
 
     <script>
         let playerBalance = 1000;
@@ -55,7 +57,7 @@
         let playerLevel = 1;
         let round = 1;
         let rivalBalance = 1000;
-        let gameOver = false;
+        let gameWon = false;
 
         let properties = [
             { name: "Tech Startup", price: 200, revenue: 50, owner: null, expansionLevel: 0 },
@@ -82,15 +84,13 @@
                 div.className = "property";
                 div.innerText = `${prop.name}\n£${prop.price}\nRevenue: £${prop.revenue}\nExpansions: ${prop.expansionLevel}\nOwned: ${prop.owner ? prop.owner : "None"}`;
                 div.style.backgroundColor = prop.owner === "Player" ? "lightgreen" : prop.owner === "Rival" ? "lightcoral" : "white";
-                if (!gameOver) {
-                    div.onclick = () => (prop.owner === "Player" ? expandBusiness(index) : buyProperty(index));
-                }
+                div.onclick = () => (prop.owner === "Player" ? expandBusiness(index) : buyProperty(index));
                 board.appendChild(div);
             });
         }
 
         function buyProperty(index) {
-            if (gameOver) return;
+            if (gameWon) return;
             let prop = properties[index];
             if (prop.owner) {
                 alert("This business is already owned!");
@@ -102,15 +102,15 @@
                 playerXP += 10;
                 levelUp();
                 alert(`You acquired ${prop.name}! It generates £${prop.revenue} per round.`);
-                checkWinCondition();
             } else {
                 alert("Not enough money to invest!");
             }
             updateUI();
+            checkWinCondition();
         }
 
         function expandBusiness(index) {
-            if (gameOver) return;
+            if (gameWon) return;
             let prop = properties[index];
             let expansionCost = (prop.expansionLevel + 1) * 100;
             if (playerBalance >= expansionCost) {
@@ -122,10 +122,11 @@
                 alert("Not enough money to expand!");
             }
             updateUI();
+            checkWinCondition();
         }
 
         function rivalTurn() {
-            if (gameOver) return;
+            if (gameWon) return;
             let availableProperties = properties.filter(p => !p.owner);
             if (availableProperties.length > 0 && rivalBalance >= availableProperties[0].price) {
                 let rivalChoice = availableProperties[Math.floor(Math.random() * availableProperties.length)];
@@ -139,16 +140,16 @@
             if (playerXP >= playerLevel * 50) {
                 playerXP = 0;
                 playerLevel++;
-                alert(`Level up! You are now Level ${playerLevel}!”);
+                alert(`Level up! You are now Level ${playerLevel}!");
             }
         }
 
         function nextRound() {
-            if (gameOver) return;
+            if (gameWon) return;
+
             let totalRevenue = properties.filter(p => p.owner === "Player").reduce((sum, p) => sum + p.revenue, 0);
             playerBalance += totalRevenue;
             round++;
-
             let challengeIndex = Math.floor(Math.random() * challenges.length);
             let challenge = challenges[challengeIndex];
             alert(`Round ${round}: ${challenge}`);
@@ -164,18 +165,17 @@
             } else if (challenge.includes("extra £50")) {
                 playerBalance += 50;
             }
-
             rivalTurn();
-            checkWinCondition();
             updateUI();
+            checkWinCondition();
         }
 
         function checkWinCondition() {
-            let allOwned = properties.every(p => p.owner === "Player");
-            if (allOwned) {
-                gameOver = true;
-                document.getElementById("game-message").innerText = "🎉 Congratulations! You've taken over the entire market and won the game!";
-                document.getElementById("next-round-button").disabled = true;
+            if (properties.every(p => p.owner === "Player")) {
+                gameWon = true;
+                document.getElementById("message-box").innerText = "🎉 Congratulations! You now own all the businesses and have won the game!";
+                document.getElementById("message-box").style.display = "block";
+                document.getElementById("next-round-btn").disabled = true;
             }
         }
 
